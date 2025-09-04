@@ -1,0 +1,61 @@
+#!/bin/bash
+
+# air CLI (dev)
+
+air_help() {
+    cat <<EOF
+Usage:
+  air <NAME> [QUANTITY]
+
+Arguments:
+  NAME  	Required
+  QUANTITY      Optional
+
+Examples:
+  air bitcoin
+  air bitcoin 5
+EOF
+}
+
+air_main() {
+    QUERY=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+    QTY=${2:-1}
+
+    DATA=$(curl -s \
+        "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${QUERY}&price_change_percentage=1h,24h,7d,30d,1y")
+    
+    if [[ "$DATA" == "[]" ]]; then
+        echo "Unknown ID: $1"
+        exit 1
+    fi
+
+    NAME=$(echo "$DATA"       | jq -r '.[0].name')
+    SYMBOL_UP=$(echo "$DATA"  | jq -r '.[0].symbol' | tr '[:lower:]' '[:upper:]')
+    PRICE=$(echo "$DATA"      | jq -r '.[0].current_price')
+    MCAP=$(echo "$DATA"       | jq -r '.[0].market_cap')
+    VOLUME=$(echo "$DATA"     | jq -r '.[0].total_volume')
+
+    P1H=$(echo "$DATA"  | jq -r '.[0].price_change_percentage_1h_in_currency'    | awk '{printf "%.2f", $1}')
+    P24H=$(echo "$DATA" | jq -r '.[0].price_change_percentage_24h_in_currency'   | awk '{printf "%.2f", $1}')
+    P7D=$(echo "$DATA"  | jq -r '.[0].price_change_percentage_7d_in_currency'    | awk '{printf "%.2f", $1}')
+    P30D=$(echo "$DATA" | jq -r '.[0].price_change_percentage_30d_in_currency'   | awk '{printf "%.2f", $1}')
+    P1Y=$(echo "$DATA"  | jq -r '.[0].price_change_percentage_1y_in_currency'    | awk '{printf "%.2f", $1}')
+
+    echo "${NAME} (${SYMBOL_UP})"
+    echo "Price (USD): \$${PRICE}"
+    echo "1h: ${P1H}% | 24h: ${P24H}% | 7d: ${P7D}% | 30d: ${P30D}% | 1y: ${P1Y}%"
+    echo "Market Cap: \$${MCAP}"
+    echo "Volume: \$${VOLUME}"
+
+    if [[ "$QTY" != "1" ]]; then
+        TOTAL=$(awk "BEGIN {print $PRICE * $QTY}")
+        echo "For ${QTY} ${SYMBOL_UP}: \$${TOTAL}"
+    fi
+}
+
+if [[ "$1" == "help" || -z "$1" ]]; then
+    air_help
+else
+    air_main "$@"
+fi
+
