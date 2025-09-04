@@ -1,4 +1,7 @@
 ### Installation
 
-`git clone https://github.com/falconeri-8/air-CLI.git`
-`bash air-CLI/install.sh`
+```bash git clone https://github.com/falconeri-8/air-cli.git
+```
+```bash
+bash air-cli/install.sh
+```
